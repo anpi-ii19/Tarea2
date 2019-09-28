@@ -1,6 +1,7 @@
 from sympy import MatrixSymbol, Symbol, lambdify, diff
 from numpy import matrix, ones, zeros, linalg
 from scipy import optimize
+from graficar_error import graficar_error
 
 
 def mmb_secuencial(n, tol):
@@ -49,6 +50,12 @@ def mmb_secuencial(n, tol):
     vec_x1_aux = matrix(zeros((n, 1), dtype='object'))
     vec_error = matrix(zeros((n, 1), dtype='object'))
 
+    # Se crean las listas para graficar el error
+    lista_iter = []
+    lista_error = []
+
+    itr = 1  # Contador de iteraciones
+
     while 1:
         # Se calcula el vector k+1 utilizando la regla de Jacobi
         for j in range(0, n):
@@ -82,9 +89,16 @@ def mmb_secuencial(n, tol):
 
         norma_2 = linalg.norm(vec_parada, 2)
 
+        lista_iter.append(itr)
+        lista_error.append(norma_2)
+
         # Se verifica la condicion de parada
         if norma_2 < tol:
             break
+
+        itr += 1
+
+    graficar_error(lista_iter, lista_error)
 
     return vec_x
 
@@ -189,4 +203,4 @@ def crear_matriz_b(n):
 # n = 10
 # r = mmb_secuencial(n, 10**-5)
 # a = crear_matriz_a(n)
-# v = r * a
+# v = a * r

@@ -53,12 +53,9 @@ def jacobi(x_size, f, x_k):
 
     resultados = ray.get(resultados_ids)
 
-   # donde res = [i, x_min, f(x_k_tem)]
-    for res in resultados:
-        if res[2] <= e:
-            e = res[2]
-            i = res[0]
-
+    # donde res = [i, x_min, f(x_k_tem)]
+    e = np.array([item[2] for item in resultados])
+    i = np.argmin(e)
     x_k[i] = resultados[i][1]
     return x_k
 

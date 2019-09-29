@@ -44,8 +44,8 @@ def f_n(f, X, n, x):
 
 
 def jacobi(x_size, f, x_k):
-    e = np.zeros(x_size)
-    x_tem = np.zeros(x_size)
+    e = 9e99
+    i = 0
 
     resultados_ids = []
     for i in range(x_size):
@@ -53,12 +53,13 @@ def jacobi(x_size, f, x_k):
 
     resultados = ray.get(resultados_ids)
 
+   # donde res = [i, x_min, f(x_k_tem)]
     for res in resultados:
-        x_tem[res[0]] = res[1]
-        e[res[0]] = res[2]
+        if res[2] <= e:
+            e = res[2]
+            i = res[0]
 
-    i = e.argmin()
-    x_k[i] = x_tem[i]
+    x_k[i] = resultados[i][1]
     return x_k
 
 

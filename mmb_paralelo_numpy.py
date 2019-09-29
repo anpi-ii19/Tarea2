@@ -1,6 +1,10 @@
 import time
 import numpy as np
 from scipy.optimize import fmin
+from multiprocessing import Process, Queue
+import ray
+
+ray.init()
 
 
 def create_A(n):
@@ -33,19 +37,38 @@ def grad_fun(X, A, b):
     return grad
 
 
-def jacobi(f, X_0):
-    x_size = len(X_0)
-    results = np.zeros(x_size)
-    for i in range(0, x_size):
-        def f_i(x): return f_n(f, x_0, i, x)
-        results[i] = fmin(f_i, X_0[i], disp=False)
-    return matrix(results).T
-
-
 def f_n(f, X, n, x):
     X_local = np.copy(X)
     X_local[n] = x
     return f(X_local)
+
+
+def jacobi(x_size, f, x_k):
+    e = np.zeros(x_size)
+    x_tem = np.zeros(x_size)
+
+    resultados_ids = []
+    for i in range(x_size):
+        resultados_ids.append(jacobi_paralelo.remote(i, f, x_k))
+
+    resultados = ray.get(resultados_ids)
+
+    for res in resultados:
+        x_tem[res[0]] = res[1]
+        e[res[0]] = res[2]
+
+    i = e.argmin()
+    x_k[i] = x_tem[i]
+    return x_k
+
+
+@ray.remote
+def jacobi_paralelo(i, f, x_k):
+    def f_i(x): return f_n(f, x_k, i, x)
+    x_min = fmin(f_i, x_k[i], disp=False, ftol=10**-15)
+    x_k_tem = np.copy(x_k)
+    x_k_tem[i] = x_min
+    return [i, x_min, f(x_k_tem)]
 
 
 def mmb(f, grad_f, x_0, tol=10**-5, disp=False):
@@ -54,17 +77,7 @@ def mmb(f, grad_f, x_0, tol=10**-5, disp=False):
     cont = 0
     norm_grad_prev = np.linalg.norm(grad_f(x_k))
     while(norm_grad_prev > tol):
-        e = np.zeros(x_size)
-        x_tem = np.zeros(x_size)
-        for i in range(x_size):
-            def f_i(x): return f_n(f, x_k, i, x)
-            x_min = fmin(f_i, x_k[i], disp=False, ftol=10**-15)
-            x_tem[i] = x_min
-            x_k_tem = np.copy(x_k)
-            x_k_tem[i] = x_min
-            e[i] = f(x_k_tem)
-        i = e.argmin()
-        x_k[i] = x_tem[i]
+        x_k = jacobi(x_size, f, x_k)
         norm_grad_current = np.linalg.norm(grad_f(x_k))
         if(abs(norm_grad_current-norm_grad_prev) < 10**-30):
             print("BREAK")
@@ -94,4 +107,5 @@ def run_mmb(n, tol=10**-5, disp=False):
     print("-"*100)
     return result
 
-# run_mmb(50,disp=True)
+
+run_mmb(50, disp=True)

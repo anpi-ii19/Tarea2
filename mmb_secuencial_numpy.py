@@ -32,9 +32,9 @@ def jacobi(f,X_0):
     x_size=len(X_0)
     results=np.zeros(x_size)
     for i in range(0,x_size):
-        f_i = lambda x :f_n(f,x_0,i,x)
+        f_i = lambda x :f_n(f,X_0,i,x)
         results[i]=fmin(f_i,X_0[i],disp=False)
-    return matrix(results).T
+    return np.matrix(results).T
 
 def f_n(f,X,n,x):
     X_local= np.copy(X)

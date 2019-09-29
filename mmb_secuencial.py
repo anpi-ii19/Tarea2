@@ -1,12 +1,16 @@
-from sympy import MatrixSymbol, Symbol, lambdify, diff
+from sympy import MatrixSymbol, Symbol, lambdify
 from numpy import matrix, ones, zeros, linalg
 from scipy import optimize
 from graficar_error import graficar_error
+from crear_matriz import crear_matriz_a
+from crear_matriz import crear_matriz_b
+from gradiente import calcular_gradiente
+from gradiente import evaluar_gradiente
 
 
 def mmb_secuencial(n, tol):
     """
-    Metodo de Mejora Maxima por Bloque
+    Metodo de Mejora Maxima por Bloque utilizando una ejecucion secuencial
     :param n: Cantidad de filas y columnas de la matriz tridiagonal
     :param tol: Tolerancia al fallo que debe tener el resultado
     :return: Matriz x calculada con el metodo
@@ -86,6 +90,7 @@ def mmb_secuencial(n, tol):
 
         # Se calcula el vector para verificar la condicion de parada
         vec_parada = evaluar_gradiente(gradiente, vec_x_simbolico, vec_x)
+        vec_parada = matrix(vec_parada, dtype='float')
 
         norma_2 = linalg.norm(vec_parada, 2)
 
@@ -101,103 +106,6 @@ def mmb_secuencial(n, tol):
     graficar_error(lista_iter, lista_error)
 
     return vec_x
-
-
-def calcular_gradiente(f, matriz_a, matriz_b, vec_x_simbolico):
-    """
-    Calculo del gradiente de una funcion matematica
-    :param f: Funcion lambdify a la que calcularle el gradiente
-    :param matriz_a: Matriz A
-    :param matriz_b: Matriz b
-    :param vec_x_simbolico: Vector x con todas las variables simbolicas
-    :return: Gradiente calculado
-    """
-    gradiente = []
-    m = matriz_b.shape[0]
-
-    # Se evalua la funcion con el vector simbolico
-    funcion = f(matriz_a, matriz_b, vec_x_simbolico).item(0)
-
-    # Se calcula el gradiente de la funcion obtenida
-    for j in range(0, m):
-        df = diff(funcion, vec_x_simbolico[j]).tolist()[0][0]
-
-        gradiente.append(df)
-
-    return gradiente
-
-
-def evaluar_gradiente(gradiente, variables, vector):
-    """
-    Funcion para evaluar el gradradiente con un vector ingresado
-    :param gradiente: gradiente que se debe evaluar
-    :param variables: lista con las variables simbolicas de la ecuacion
-    :param vector: vector que se debe evaluar en el gradiente
-    :return: resultado de evaluar el vector en el gradiente
-    """
-    n = len(variables)
-    resultado = []
-
-    # Se recorre cada una de las derivadas parciales en el gradiente
-    for i in range(0, n):
-        # Se obtiene la derivada parcial
-        funcion = gradiente[i]
-
-        # Se sustituyen cada una de las variables por el valor en el vector
-        for x in range(0, n):
-            funcion = funcion.subs(variables.item(x), vector.item(x))
-
-        resultado += [[funcion.doit()]]
-
-    return matrix(resultado, dtype='float')
-
-
-def crear_matriz_a(n):
-    """
-    Funcion encargada de crear la matriz tridiagonal A
-    :param n: Numero de filas y columnas de la matriz
-    :return:
-    """
-    # Se crea una matriz de n x n
-    matriz_a = matrix(zeros((n, n), dtype='int'))
-
-    # Caso especial primera fila
-    matriz_a[0, 0] = 6
-    matriz_a[0, 1] = 2
-
-    # Se itera sobre las filas de la matriz para establecer los valores
-    for i in range(1, n - 1):
-        matriz_a[i, i] = 6
-        matriz_a[i, i - 1] = 2
-        matriz_a[i, i + 1] = 2
-
-    # Caso especial ultima fila
-    matriz_a[n - 1, n - 1] = 6
-    matriz_a[n - 1, n - 2] = 2
-
-    return matriz_a
-
-
-def crear_matriz_b(n):
-    """
-    Funcion encargada de crear la matriz b de una columna
-    :param n: Numero de filas
-    :return: Matriz creada
-    """
-    # Se crea un vector columna de n x 1
-    matriz_b = matrix(zeros((n, 1), dtype='int'))
-
-    # Caso especial primera fila
-    matriz_b[0, 0] = 12
-
-    # Se itera sobre las filas de la matriz para establecer los valores
-    for i in range(1, n - 1):
-        matriz_b[i, 0] = 15
-
-    # Caso especial ultima fila
-    matriz_b[n - 1, 0] = 12
-
-    return matriz_b
 
 
 # n = 10

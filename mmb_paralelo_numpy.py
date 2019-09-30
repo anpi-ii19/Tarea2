@@ -2,12 +2,19 @@ import time
 import numpy as np
 from scipy.optimize import fmin
 from multiprocessing import Process, Queue
+from graficar_error import graficar_error
 import ray
 
+# Inicializa la librería de multithreading
 ray.init()
 
 
 def create_A(n):
+    """
+    crear matrix triagiagonal A de tamano nxn
+    :param n: Cantidad de filas y columnas de la matriz tridiagonal
+    :return: Matriz generada
+    """
     up = np.diag(np.ones(n-1)*2, 1)
     down = np.diag(np.ones(n-1)*2, -1)
     center = np.diag(np.ones(n)*6, 0)
@@ -15,6 +22,11 @@ def create_A(n):
 
 
 def create_b(n):
+    """
+    crear vector columna b de tamano n
+    :param n: Tamano de b 
+    :return: Vector columna generado
+    """
     b = np.ones(n)*15
     b[-1] = 12
     b[0] = 12
@@ -22,14 +34,34 @@ def create_b(n):
 
 
 def create_x0(n):
+    """
+    crear vector columna x de tamano n
+    :param n: Tamano de x_0 
+    :return: Vector columna generado
+    """
     return np.matrix(np.ones(n), dtype='float').T
 
 
 def fun(A, b, x):
+    """
+    Funcion (1/2)*transpuesta(x)*A*x-transpuesta(b)*x
+    :param A: matriz de tamano n*n
+    :param b: vector columna de tamano n
+    :param x: vector columna de tamano n
+    :return: (1/2)*transpuesta(x)*A*x-transpuesta(b)*x
+    """
     return ((1/2)*x.T*A*x-b.T*x).item()
 
 
 def grad_fun(X, A, b):
+    """
+    Gradiente de la funcion (1/2)*transpuesta(x)*A*x-transpuesta(b)*x, evaluada para un punto X
+    :param A: matriz de tamano n*n
+    :param b: vector columna de tamano n
+    :param x: vector columna de tamano n para el que se evalua la gradiente
+    :return: gradiente((1/2)*transpuesta(x)*A*x-transpuesta(b)*x) evaluado en X
+    """
+
     x_size = len(X)
     grad = np.zeros(x_size)
     for i in range(0, x_size):
@@ -38,16 +70,29 @@ def grad_fun(X, A, b):
 
 
 def f_n(f, X, n, x):
+    """
+    Llamar la funcion f actualizando unicamente la posicion n del vector X
+    :param X: vector columna de tamano n
+    :param n: indice de la posicion a reemplazar
+    :param x: valor a colocar en X[n]
+    :return: resultado de f evaluada en el vector actualizado
+    """
     X_local = np.copy(X)
     X_local[n] = x
     return f(X_local)
 
 
-def jacobi(x_size, f, x_k):
-
+def minimizador(x_size, f, x_k):
+    """
+    Función para calcular el argmin y el nuevo x_k
+    :param x_size: tamaño de la matriz
+    :param f: funcion sobre la que se evalua la optimizacion
+    :param x_k: valor actual de x_k
+    :return: nuevo x_k
+    """
     resultados_ids = []
     for i in range(x_size):
-        resultados_ids.append(jacobi_paralelo.remote(i, f, x_k))
+        resultados_ids.append(minimizador_paralelo.remote(i, f, x_k))
 
     resultados = np.array(ray.get(resultados_ids))
 
@@ -59,7 +104,14 @@ def jacobi(x_size, f, x_k):
 
 
 @ray.remote
-def jacobi_paralelo(i, f, x_k):
+def minimizador_paralelo(i, f, x_k):
+    """
+    Función auxiliar para el minimizador que se paralelizará
+    :param i: número de iteración
+    :param f: funcion sobre la que se evalua la optimizacion
+    :param x_k: valor actual de x_k
+    :return: array de numpy con [número de iteracion, x_min y f(temporal)]
+    """
     def f_i(x): return f_n(f, x_k, i, x)
     x_min = fmin(f_i, x_k[i], disp=False, ftol=10**-15)
     x_k_tem = np.copy(x_k)
@@ -67,28 +119,55 @@ def jacobi_paralelo(i, f, x_k):
     return np.array([i, x_min, f(x_k_tem)])
 
 
-def mmb(f, grad_f, x_0, tol=10**-5, disp=False):
+def mmb(f, grad_f, x_0, tol=10**-5, graf_error=False, disp=False):
+    """
+    Metodo iterativo de mejora maxima de bloque
+    :param f: funcion sobre la que se evalua la optimizacion
+    :param grad_f: gradiente de la funcion f
+    :param x_0: valor inicia de x
+    :param tol: valor de tolerancia
+    :param graf_error: bandera para generar grafico de error
+    :param disp: bandera para impimir datos intermedios
+    :return: argmin de f(x)
+    """
+    # generar copia de x_0 para las siguentes iteraciones
     x_k = np.copy(x_0)
     x_size = len(x_k)
     cont = 0
+    # evaluar la gradiente para el x_0
     norm_grad_prev = np.linalg.norm(grad_f(x_k))
     while(norm_grad_prev > tol):
-        x_k = jacobi(x_size, f, x_k)
+        x_k = minimizador(x_size, f, x_k)
+        # evaluar la gradiente en x_k
         norm_grad_current = np.linalg.norm(grad_f(x_k))
+        # parada en caso de no converger
         if(abs(norm_grad_current-norm_grad_prev) < 10**-30):
             print("BREAK")
             break
         if(disp):
-            #             print(cont,"error:",np.linalg.norm(grad_f(x_k)))
-            print(cont, norm_grad_current, abs(
-                norm_grad_current - norm_grad_prev))
+            print(iter_, "error:", np.linalg.norm(grad_f(x_k)))
         norm_grad_prev = norm_grad_current
 
+        error.append(norm_grad_current)
+        iter_ += 1
+
         cont += 1
+
+    if(graf_error):
+        graficar_error(range(iter_), error)
+
     return x_k
 
 
 def run_mmb(n, tol=10**-5, disp=False):
+    """
+    Ejecutar la funcion mmb, inicianlizando los vectores con un tamano n y midiendo los tiempos de ejecucion
+    :param n: tamano de los vectores y matrices
+    :param tol: valor de tolerancia
+    :param graf_error: bandera para generar grafico de error
+    :param disp: bandera para impimir datos intermedios
+    :return: argmin de f(x)
+    """
     A = create_A(n)
     b = create_b(n)
     x_0 = create_x0(n)
@@ -104,4 +183,5 @@ def run_mmb(n, tol=10**-5, disp=False):
     return result
 
 
-run_mmb(50, disp=True)
+# x_min = run_mmb(50,disp=True)
+# print(x_min)

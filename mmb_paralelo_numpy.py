@@ -44,8 +44,6 @@ def f_n(f, X, n, x):
 
 
 def jacobi(x_size, f, x_k):
-    e = 9e99
-    i = 0
 
     resultados_ids = []
     for i in range(x_size):

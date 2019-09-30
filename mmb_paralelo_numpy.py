@@ -44,8 +44,6 @@ def f_n(f, X, n, x):
 
 
 def jacobi(x_size, f, x_k):
-    e = 9e99
-    i = 0
 
     resultados_ids = []
     for i in range(x_size):
@@ -66,7 +64,7 @@ def jacobi_paralelo(i, f, x_k):
     x_min = fmin(f_i, x_k[i], disp=False, ftol=10**-15)
     x_k_tem = np.copy(x_k)
     x_k_tem[i] = x_min
-    return [i, x_min, f(x_k_tem)]
+    return np.array([i, x_min, f(x_k_tem)])
 
 
 def mmb(f, grad_f, x_0, tol=10**-5, disp=False):

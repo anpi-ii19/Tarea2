@@ -133,7 +133,8 @@ def mmb(f, grad_f, x_0, tol=10**-5, graf_error=False, disp=False):
     # generar copia de x_0 para las siguentes iteraciones
     x_k = np.copy(x_0)
     x_size = len(x_k)
-    cont = 0
+    iter_ = 0
+    error = []
     # evaluar la gradiente para el x_0
     norm_grad_prev = np.linalg.norm(grad_f(x_k))
     while(norm_grad_prev > tol):
@@ -150,8 +151,6 @@ def mmb(f, grad_f, x_0, tol=10**-5, graf_error=False, disp=False):
 
         error.append(norm_grad_current)
         iter_ += 1
-
-        cont += 1
 
     if(graf_error):
         graficar_error(range(iter_), error)
@@ -183,5 +182,5 @@ def run_mmb(n, tol=10**-5, disp=False):
     return result
 
 
-# x_min = run_mmb(50,disp=True)
+# x_min = run_mmb(50, disp=True)
 # print(x_min)

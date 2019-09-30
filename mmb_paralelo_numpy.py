@@ -51,10 +51,10 @@ def jacobi(x_size, f, x_k):
     for i in range(x_size):
         resultados_ids.append(jacobi_paralelo.remote(i, f, x_k))
 
-    resultados = ray.get(resultados_ids)
+    resultados = np.array(ray.get(resultados_ids))
 
     # donde res = [i, x_min, f(x_k_tem)]
-    e = np.array([item[2] for item in resultados])
+    e = resultados[:, 2]
     i = np.argmin(e)
     x_k[i] = resultados[i][1]
     return x_k
